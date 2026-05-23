@@ -1,8 +1,8 @@
-# Soralink フロントエンド画面仕様
+# Proxlane フロントエンド画面仕様
 
 ## 1. 目的
 
-Soralink Dashboard は、ユーザーが GitHub OAuth でログインし、Agent token を発行し、HTTP/TCP tunnel の状態・利用量・ログ・課金状態を確認するための管理画面である。
+Proxlane Dashboard は、ユーザーが GitHub OAuth でログインし、Agent token を発行し、HTTP/TCP tunnel の状態・利用量・ログ・課金状態を確認するための管理画面である。
 
 初期 MVP では、開発者や個人ユーザーが 1 人で使うことを主対象にする。将来のチーム管理や複数 Relay には拡張できるが、最初の画面は「今つながっている tunnel をすぐ見て、必要な token を発行できる」ことを優先する。
 
@@ -87,16 +87,16 @@ flowchart TD
 
 目的:
 
-- 未ログインユーザーに Soralink の概要、使い方、OSS 方針、ログイン導線を示す。
+- 未ログインユーザーに Proxlane の概要、使い方、OSS 方針、ログイン導線を示す。
 
 表示:
 
 | セクション | 内容 |
 | --- | --- |
-| First view | Soralink 名、短い価値説明、GitHub login / docs 導線 |
+| First view | Proxlane 名、短い価値説明、GitHub login / docs 導線 |
 | How it works | VPS Relay、Agent、localhost の簡単な図 |
 | Use cases | Webhook、demo、mobile test、TCP tunnel |
-| Quick start | `soralink auth`, `soralink http 3000`, `soralink tcp 22` の例 |
+| Quick start | `proxlane auth`, `proxlane http 3000`, `proxlane tcp 22` の例 |
 | OSS | GitHub repository、self-hostable 方針 |
 | Footer | Support, Terms, Privacy Policy, Law |
 
@@ -108,7 +108,7 @@ flowchart TD
 注意:
 
 - 過度な marketing landing page にはしない。
-- first view は Soralink の実体と使い方がすぐ分かる構成にする。
+- first view は Proxlane の実体と使い方がすぐ分かる構成にする。
 - ログイン済みなら primary action は `/app` にする。
 
 ### 5.2 `/login`
@@ -119,7 +119,7 @@ flowchart TD
 
 表示:
 
-- Soralink ロゴ / サービス名。
+- Proxlane ロゴ / サービス名。
 - `Continue with GitHub` button。
 - OSS / self-hostable であることの短い補足。
 - OAuth error がある場合の error alert。
@@ -158,7 +158,7 @@ MVP:
 
 目的:
 
-- Soralink の利用条件、禁止事項、免責、アカウント停止条件を明示する。
+- Proxlane の利用条件、禁止事項、免責、アカウント停止条件を明示する。
 
 表示:
 
@@ -230,14 +230,14 @@ MVP:
 
 目的:
 
-- 現在の Soralink の状態を 1 画面で把握する。
+- 現在の Proxlane の状態を 1 画面で把握する。
 
 表示:
 
 | セクション | 内容 |
 | --- | --- |
 | Status summary | Relay status, active tunnels, active connections |
-| Quick start | `soralink auth <TOKEN>` 未発行時の導線 |
+| Quick start | `proxlane auth <TOKEN>` 未発行時の導線 |
 | Forwarding | active tunnel の公開 URL / local addr |
 | Usage | 今月の転送量、接続数、plan limit |
 | Recent activity | 直近 connection / request log |
@@ -252,7 +252,7 @@ MVP:
 Empty state:
 
 - token がない場合: token 作成を促す。
-- tunnel がない場合: `soralink http 3000` の最小 command を表示する。
+- tunnel がない場合: `proxlane http 3000` の最小 command を表示する。
 
 ### 5.8 `/app/tunnels`
 
@@ -405,10 +405,10 @@ Inspection:
 
 | セクション | 内容 |
 | --- | --- |
-| Current plan | Free / Pro / Team |
+| Current plan | Free / Plus / Pro |
 | Usage | tunnels, connections, transfer |
 | Limits | plan ごとの上限 |
-| Plan comparison | Free / Pro / Team / Enterprise の価格と主要機能 |
+| Plan comparison | Free / Plus / Pro の価格と主要機能 |
 | Billing actions | Checkout / Customer Portal |
 | Stripe status | subscription status |
 
@@ -422,12 +422,11 @@ Inspection:
 
 | Plan | 価格 | 表示する主な差分 |
 | --- | ---: | --- |
-| Free | 0円 | 1 active tunnel、5GB/月、TCP は invite / disabled |
-| Pro | 1,200円/月 | 5 active tunnel、100GB/月、TCP、予約 subdomain、固定 TCP port |
-| Team | 4,800円/月 | 5 seats、20 active tunnel、1TB/月、team 管理、custom domain |
-| Enterprise | 個別見積 | dedicated Relay、SLA、個別 quota |
+| Free | 0円 | 1 active tunnel、ランダム subdomain、TCP/HTTP 各1、5GB/月 |
+| Plus | 390円/月 | 3 active tunnel、予約 subdomain 1、TCP/HTTP 各3、50GB/月 |
+| Pro | 980円/月 | 10 active tunnel、予約 subdomain 5、TCP/HTTP 各10、固定 TCP port は後で実装、200GB/月 |
 
-Free はカード登録不要。Pro / Team は Checkout へ遷移する。Enterprise は `/support` または問い合わせ導線へ送る。
+Free はカード登録不要。Plus / Pro は Checkout へ遷移する。
 
 ### 5.13 `/app/settings`
 

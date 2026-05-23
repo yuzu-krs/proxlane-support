@@ -1,8 +1,8 @@
-# Soralink ロードマップ
+# Proxlane ロードマップ
 
 ## 方針
 
-Soralink はネットワーク基盤が中心の OSS サービスなので、最初に「つながる」「切れたら戻る」「漏れない」を固める。その後に Auth.js、Prisma、SQLite、dashboard、カスタムドメイン、Stripe 課金などの SaaS 機能を足す。
+Proxlane はネットワーク基盤が中心の OSS サービスなので、最初に「つながる」「切れたら戻る」「漏れない」を固める。その後に Auth.js、Prisma、SQLite、dashboard、カスタムドメイン、Stripe 課金などの SaaS 機能を足す。
 
 初期 Relay は開発者所有のグローバル IP 付き VPS 1 台で動かす。UDP は優先度低めとし、HTTP/TCP が安定してから扱う。
 
@@ -36,8 +36,8 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 機能:
 
 - Go module 初期化
-- `soralink relay` または `soralink-server`
-- `soralink tcp <port>` または `soralink-client`
+- `proxlane relay` または `proxlane-server`
+- `proxlane tcp <port>` または `proxlane-client`
 - token 認証
 - Prisma `AgentToken` schema
 - SQLite による token metadata 永続化
@@ -63,14 +63,14 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 - HTTP reverse proxy
 - wildcard domain routing
 - ランダム subdomain
-- `soralink http <port>`
+- `proxlane http <port>`
 - `X-Forwarded-*` header
 - WebSocket support
 - basic request log
 
 完了条件:
 
-- `soralink http 3000` で `https://<random>.t.proxlane.com` が表示される。
+- `proxlane http 3000` で `https://<random>.t.proxlane.com` が表示される。
 - ブラウザからアクセスして `localhost:3000` に届く。
 - WebSocket echo が動く。
 
@@ -118,7 +118,7 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 
 完了条件:
 
-- Web で token を作成し、`soralink auth <TOKEN>` で使える。
+- Web で token を作成し、`proxlane auth <TOKEN>` で使える。
 - dashboard に active tunnel が表示される。
 - 別ユーザーの token / tunnel metadata が API 経由で読めない。
 - SQLite DB ファイルが repository に含まれない。
@@ -141,7 +141,7 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 
 完了条件:
 
-- `soralink http 3000 --subdomain myapp` が使える。
+- `proxlane http 3000 --subdomain myapp` が使える。
 - `https://myapp.t.proxlane.com` を固定 URL として使える。
 - 独自ドメインが CNAME 設定で使える。
 
@@ -176,7 +176,7 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 - organization / team
 - plan / quota
 - usage 集計
-- Free / Pro / Team / Enterprise plan 定義
+- Free / Plus / Pro plan 定義
 - 定額 subscription の quota 制御
 - Stripe Checkout
 - Stripe Customer Portal
@@ -189,7 +189,7 @@ Soralink はネットワーク基盤が中心の OSS サービスなので、最
 
 完了条件:
 
-- Free / Pro などの plan に応じて tunnel 数や転送量を制限できる。
+- Free / Plus / Pro の plan に応じて tunnel 数や転送量を制限できる。
 - MVP では従量課金を使わず、上限到達時に新規 tunnel / connection を制限できる。
 - 請求状態と quota が連動する。
 - SQLite の限界が見えた場合に PostgreSQL へ移行できる。

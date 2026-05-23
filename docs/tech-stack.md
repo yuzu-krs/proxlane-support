@@ -1,8 +1,8 @@
-# Soralink 技術スタック
+# Proxlane 技術スタック
 
 ## 1. 選定方針
 
-Soralink は OSS として開発し、Hosted SaaS とセルフホストの両方へ拡張できる構成にする。初期実装では、開発者所有のグローバル IP 付き VPS 1 台を Relay として使い、認証・DB・課金は自前の Dashboard API、Auth.js、SQLite、Prisma、Stripe で構成する。
+Proxlane は OSS として開発し、Hosted SaaS とセルフホストの両方へ拡張できる構成にする。初期実装では、開発者所有のグローバル IP 付き VPS 1 台を Relay として使い、認証・DB・課金は自前の Dashboard API、Auth.js、SQLite、Prisma、Stripe で構成する。
 
 選定基準:
 
@@ -33,13 +33,13 @@ flowchart LR
 | 領域 | 採用 | 用途 |
 | --- | --- | --- |
 | Relay / Agent | Go | トンネル、TCP/HTTP bridge、CLI |
-| CLI framework | Cobra | `soralink http`, `soralink tcp`, `soralink auth` などのサブコマンド |
-| 設定ファイル | YAML | `~/.soralink/config.yaml`, `soralink.yml` |
+| CLI framework | standard `flag` | MVP は依存を増やさず `proxlane http`, `proxlane tcp`, `proxlane auth` を実装 |
+| 設定ファイル | minimal YAML-like file | `~/.proxlane/config.yaml` に `server` と `token` を保存 |
 | Dashboard | Next.js App Router | ログイン後の管理画面、BFF/API Route |
 | Frontend language | TypeScript | UI と API client の型安全性 |
-| UI | React + Tailwind CSS + shadcn/ui | Dashboard UI |
+| UI | React + Tailwind CSS | Dashboard UI |
 | Icons | lucide-react | ボタン、ナビゲーション、状態表示 |
-| Form validation | React Hook Form + Zod | token 作成、endpoint 設定、billing 操作 |
+| Form validation | server-side validation first | token 作成、endpoint 設定、billing 操作 |
 | Auth | Auth.js | GitHub OAuth のみ |
 | Auth adapter | `@auth/prisma-adapter` | Auth.js の user/account/session を Prisma で永続化 |
 | DB | SQLite | ユーザー、token、endpoint、usage、billing metadata |
@@ -47,11 +47,11 @@ flowchart LR
 | Authorization | Application-level checks | `auth()` session と `userId` scoped query で保護 |
 | Billing | Stripe | Checkout、Customer Portal、Webhook |
 | Reverse proxy | Caddy | `app`, `api`, wildcard tunnel host の振り分け |
-| Deployment | Docker Compose on VPS | Relay、Dashboard、Caddy を単一 VPS で運用 |
+| Deployment | systemd on VPS | Relay、Dashboard、Caddy を単一 VPS で運用 |
 | Logs | Go `slog` + JSON logs | Relay / Agent / API の構造化ログ |
 | Metrics | Prometheus client | active tunnel、connection、bytes |
-| CI | GitHub Actions | test、lint、build、secret scan |
-| Release | GoReleaser | CLI / Relay binary の配布 |
+| CI | GitHub Actions | test、lint、build、release |
+| Release | GitHub Actions + GitHub Releases | v0.1 は Linux / Windows 用 CLI binary を先に配布し、macOS は後続 |
 
 ## 3. フロントエンド
 
@@ -110,7 +110,7 @@ flowchart LR
 
 | コンポーネント | 役割 |
 | --- | --- |
-| `soralink` CLI | `auth`, `http`, `tcp`, `start`, `status` |
+| `proxlane` CLI | `auth`, `http`, `tcp`, `start`, `status` |
 | Agent | Relay へ接続し、ローカル service へ bridge |
 | Relay | HTTP/TCP endpoint を受け、Agent へ転送 |
 | Protocol package | frame、message、heartbeat、error |
@@ -138,8 +138,8 @@ flowchart LR
 
 ### 4.4 Agent の責務
 
-- `soralink auth <TOKEN>` で token を保存する。
-- `soralink http 3000` / `soralink tcp 22` で tunnel を作成する。
+- `proxlane auth <TOKEN>` で token を保存する。
+- `proxlane http 3000` / `proxlane tcp 22` で tunnel を作成する。
 - Relay 切断時に reconnect する。
 - ローカルサービスへ接続し、Relay との間で双方向 bridge する。
 - token や config をログに出さない。
@@ -183,10 +183,10 @@ flowchart LR
 
 方針:
 
-- Soralink はカード情報を保持しない。
+- Proxlane はカード情報を保持しない。
 - plan 変更は Checkout / Portal に任せる。
 - MVP は定額 subscription のみで開始し、転送量の従量課金は実装しない。
-- quota は Soralink 側で判定し、上限到達時は新規 tunnel / connection を制限する。
+- quota は Proxlane 側で判定し、上限到達時は新規 tunnel / connection を制限する。
 - `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` などの webhook で SQLite の billing metadata を同期する。
 - Webhook は raw body と `Stripe-Signature` で署名検証してから処理する。
 
@@ -194,10 +194,9 @@ flowchart LR
 
 | Plan | Price | 主な上限 |
 | --- | ---: | --- |
-| Free | 0円 | 1 active tunnel、5GB/月、Hosted TCP は invite / disabled |
-| Pro | 1,200円/月 | 5 active tunnel、100GB/月、予約 subdomain 3、固定 TCP port 2 |
-| Team | 4,800円/月 | 5 seats、20 active tunnel、1TB/月、custom domain 10 |
-| Enterprise | 個別見積 | dedicated Relay、SLA、個別 quota |
+| Free | 0円 | 1 active tunnel、TCP/HTTP 各1、5GB/月 |
+| Plus | 390円/月 | 3 active tunnel、TCP/HTTP 各3、予約 subdomain 1、50GB/月 |
+| Pro | 980円/月 | 10 active tunnel、TCP/HTTP 各10、予約 subdomain 5、固定 TCP port は後で実装、200GB/月 |
 
 詳細は [課金プラン仕様](billing-plans.md) に定義する。
 
@@ -205,11 +204,11 @@ flowchart LR
 
 ### 7.1 初期構成
 
-単一 VPS に次を配置する。
+初期 production は DDPS のグローバル IP 付き単一 VPS に次を配置する。
 
 ```mermaid
 flowchart TD
-    DNS["DNS\nproxlane.com\n*.t.proxlane.com\nconnect.proxlane.com\njp-1.tcp.proxlane.com"] --> Caddy["Caddy :80/:443"]
+    DNS["DNS\nproxlane.com\n*.proxlane.com\nconnect.proxlane.com"] --> Caddy["Caddy :80/:443"]
     DNS --> RelayTCP["Go Relay TCP range\n:10000-20000"]
     Caddy --> Web["Next.js app\n:3000"]
     Caddy --> RelayHTTP["Go Relay HTTP proxy\n:8080"]
@@ -221,7 +220,7 @@ flowchart TD
     Web --> Stripe["Stripe"]
 ```
 
-ドメインは `proxlane.com` を本体、`*.t.proxlane.com` を HTTP tunnel、`connect.proxlane.com` を Agent control、`jp-1.tcp.proxlane.com` を TCP endpoint に使う。Dashboard/Auth.js の cookie は host-only にし、`.proxlane.com` domain cookie は使わない。
+現在の production は `proxlane.com` を本体、`*.proxlane.com` を HTTP tunnel、`connect.proxlane.com:4610` を Agent control、`proxlane.com:<allocated-port>` を TCP endpoint に使う。将来的には `*.t.proxlane.com` と `jp-1.tcp.proxlane.com` へ分離する。Dashboard/Auth.js の cookie は host-only にし、`.proxlane.com` domain cookie は使わない。
 
 ### 7.2 VPS 内のプロセス
 
@@ -246,12 +245,15 @@ flowchart TD
 ## 8. リポジトリ構成
 
 ```text
-soralink/
+proxlane/
   apps/
     web/                  # Next.js Dashboard
+      prisma/
+        schema.prisma
+        migrations/
   cmd/
-    soralink/             # Go CLI entrypoint
-    soralink-relay/       # Go Relay entrypoint
+    proxlane/             # Go CLI entrypoint
+    proxlane-relay/       # Go Relay entrypoint
   internal/
     agent/
     relay/
@@ -259,9 +261,6 @@ soralink/
   packages/
     controlplane/         # token, quota, billing logic
     db/                   # Prisma Client wrapper
-  prisma/
-    schema.prisma
-    migrations/
   deploy/
     caddy/
     docker-compose.yml
@@ -288,14 +287,14 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 AUTH_SECRET=generated-random-secret
 AUTH_GITHUB_ID=github-oauth-client-id
 AUTH_GITHUB_SECRET=github-oauth-client-secret
-DATABASE_URL=file:/var/lib/soralink/soralink.db
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
+DATABASE_URL=file:/var/lib/proxlane/proxlane.db
+STRIPE_SECRET_KEY=stripe-secret-key-placeholder
+STRIPE_WEBHOOK_SECRET=stripe-webhook-secret-placeholder
+STRIPE_PRICE_PLUS_MONTHLY=price_xxx
 STRIPE_PRICE_PRO_MONTHLY=price_xxx
-STRIPE_PRICE_TEAM_MONTHLY=price_xxx
+STRIPE_PRICE_PLUS_YEARLY=price_xxx
 STRIPE_PRICE_PRO_YEARLY=price_xxx
-STRIPE_PRICE_TEAM_YEARLY=price_xxx
-SORALINK_RELAY_INTERNAL_SECRET=generated-random-secret
+PROXLANE_RELAY_INTERNAL_SECRET=generated-random-secret
 ```
 
 ルール:
