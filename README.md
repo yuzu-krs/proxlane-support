@@ -72,6 +72,14 @@ Dashboard Overview の Connect section で作成した CLI token を保存しま
 ./proxlane auth <TOKEN>
 ```
 
+`http` / `tcp` command は tunnel 作成後に local service の疎通を自動確認し、その後も状態が変わった時だけ `[OK]` / `[WARN]` を表示します。監視間隔は既定で 5 秒です。不要な場合は `--no-local-check`、間隔を変える場合は `--local-check-interval 10s` を指定できます。より深く切り分けたい場合は `doctor` で config、token、Relay、DNS、local service を順番に確認できます。
+
+```bash
+./proxlane doctor
+./proxlane doctor http 3000
+./proxlane doctor tcp 25565
+```
+
 ローカル HTTP service を公開します。
 
 ```bash
@@ -82,6 +90,7 @@ Dashboard Overview の Connect section で作成した CLI token を保存しま
 
 ```text
 HTTP tunnel ready: https://tun-xxxx.proxlane.com -> 127.0.0.1:3000
+[OK] Local HTTP: GET / returned 200 OK
 ```
 
 HTTP tunnel は Caddy の On-Demand TLS で active tunnel の host だけ HTTPS を発行します。
@@ -96,6 +105,14 @@ https://tun-xxxx.proxlane.com
 proxlane http --subdomain my-dev 3000
 ```
 
+公開 HTTP endpoint に簡単な認証を付ける場合は、Basic Auth または Bearer token を指定します。認証は Relay で判定され、成功後に `Authorization` header はローカル service へ転送しません。secret は DB に保存せず、稼働中の Relay メモリ上だけで扱います。
+
+```bash
+proxlane http --basic-auth admin:secret 3000
+proxlane http --bearer test-token 3000
+curl -H "Authorization: Bearer test-token" https://tun-xxxx.proxlane.com
+```
+
 TCP service も公開できます。
 
 ```bash
@@ -105,7 +122,8 @@ TCP service も公開できます。
 成功すると次のような address が表示されます。
 
 ```text
-TCP tunnel ready: tcp://proxlane.com:10000 -> 127.0.0.1:22
+TCP tunnel ready: tcp://proxlane.com:<port> -> 127.0.0.1:22
+[OK] Local TCP: 127.0.0.1:22 is reachable
 ```
 
 Minecraft Java server のような TCP service は同じ形で公開できます。
@@ -114,7 +132,7 @@ Minecraft Java server のような TCP service は同じ形で公開できます
 ./proxlane tcp 25565
 ```
 
-`local service is not accepting connections` または `connection refused` が出る場合、public TCP tunnel までは届いていますが、CLI を実行している環境から `127.0.0.1:<port>` に接続できていません。Minecraft server を起動し、同じ host で待ち受けているか確認してください。別 host、Docker、WSL、LAN 内の別マシンにある場合は local target を明示します。
+`[WARN] Local TCP`、`local service is not accepting connections`、または `connection refused` が出る場合、public TCP tunnel までは作成できていますが、CLI を実行している環境から `127.0.0.1:<port>` に接続できていません。Minecraft server を起動し、同じ host で待ち受けているか確認してください。別 host、Docker、WSL、LAN 内の別マシンにある場合は local target を明示します。
 
 ```bash
 ./proxlane tcp --host 192.168.1.20 25565
@@ -188,4 +206,13 @@ Prisma の `file:./dev.db` は `apps/web/prisma/schema.prisma` 基準で `apps/w
 
 `/app/tunnels` はログイン中ユーザーの `TunnelSession` を読み、public URL、protocol、local address、relay id、token prefix、active / stopped 状態を表示します。
 
-`/app/logs` はログイン中ユーザーの `ConnectionLog` を読み、HTTP request と TCP connection を分けて表示します。
+`/app/logs` はログイン中ユーザーの `ConnectionLog` を読み、HTTP request と TCP connection をタブで分けて表示します。`View` から Traffic Inspector detail を開くと、method、path、status、remote addr、duration、bytes、public endpoint、local address、relay、hostname、TCP port、protection type を確認できます。Headers、body、replay payload は MVP では保存しません。
+
+実装済みの主要機能は以下です。
+
+| Feature | Current behavior |
+| --- | --- |
+| `proxlane doctor` | config、token、Relay、DNS、local HTTP/TCP service を順番に確認する |
+| Reserved Subdomain | `/app/endpoints` で予約し、予約者以外の `--subdomain` 利用を Relay が拒否する |
+| Traffic Inspector | `/app/logs` と `/app/logs/[id]` で request / connection metadata を見る |
+| Endpoint Protection | HTTP tunnel の `--basic-auth` / `--bearer` を Relay で検証する |

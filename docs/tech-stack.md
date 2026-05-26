@@ -204,7 +204,7 @@ flowchart LR
 
 ### 7.1 初期構成
 
-初期 production は DDPS のグローバル IP 付き単一 VPS に次を配置する。
+初期 production はグローバル IP 付き単一 Linux VPS に次を配置する。
 
 ```mermaid
 flowchart TD
@@ -239,7 +239,7 @@ flowchart TD
 | 80 | yes | HTTP redirect / ACME |
 | 443 | yes | Dashboard / HTTP tunnel |
 | 4610 | yes | Agent control TLS |
-| 10000-20000 | yes | TCP tunnel range |
+| 10000-20000 | yes | TCP tunnel range; automatic ports are selected from a random starting point |
 | 22 | restricted | SSH。管理 IP のみ許可推奨 |
 
 ## 8. リポジトリ構成

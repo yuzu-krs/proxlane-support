@@ -267,6 +267,7 @@ Empty state:
 | Protocol | http / tcp |
 | Public endpoint | URL or host:port |
 | Local addr | `localhost:3000` など |
+| Protection | none / Basic Auth / Bearer token |
 | Status | online / reconnecting / offline |
 | Connections | active connection count |
 | Bytes | in/out total |
@@ -323,29 +324,31 @@ Detail drawer:
 
 目的:
 
-- 予約 subdomain / 固定 TCP port / access control を管理する。
+- 予約 subdomain を管理する。固定 TCP port / access control は後続で追加する。
 
 MVP:
 
-- 読み取り中心。
-- 予約 endpoint は P2 以降。
+- Plus / Pro の予約 subdomain 上限を表示する。
+- Free は予約不可として Billing へ誘導する。
+- 予約済み host ごとに `proxlane http --subdomain <name> 3000` を copy できる。
+- 予約者以外が CLI で同じ subdomain を指定した場合は Relay が拒否する。
 
 表示カラム:
 
 | カラム | 内容 |
 | --- | --- |
-| Type | http / tcp |
-| Endpoint | subdomain or tcp port |
-| Reserved | yes/no |
-| Linked tunnel | active tunnel があれば表示 |
-| Access | public / allowlist / basic auth |
-| Actions | edit, release |
+| Hostname | 予約済み FQDN |
+| Command | CLI command copy |
+| Protocol | http |
+| Created | 作成日時 |
+| Status | Reserved |
+| Actions | delete/release |
 
 作成 dialog:
 
-- protocol select。
-- subdomain input または tcp port request。
-- access control 初期値。
+- subdomain input。
+- plan limit に応じた disabled state。
+- 作成後に一覧を refresh。
 
 ### 5.11 `/app/logs`
 
@@ -380,6 +383,12 @@ TCP log カラム:
 | Duration | 接続時間 |
 | Bytes | in/out |
 | Result | completed / error |
+
+Inspector:
+
+- `/app/logs/[id]` で保存済み metadata を表示する。
+- request method/path/status、remote addr、duration、bytes、tunnel public URL/local addr、relay、hostname、TCP port、protection type、started/ended time を表示する。
+- MVP では headers、request body、response body、replay は保存しない。secret や個人情報を意図せず保存しないため、後続で明示 opt-in と retention を設計する。
 
 Filters:
 
